@@ -1950,6 +1950,7 @@ mod tests {
             PretokenizerType::Nemotron,
             PretokenizerType::NemotronRightAligned,
             PretokenizerType::Kimi,
+            PretokenizerType::CoderMini,
         ];
         let input = "Hello, 世界! café 12345\r\ncan't  stop".as_bytes();
 

@@ -2,7 +2,7 @@ use crate::pretokenize::Pretoken;
 use crate::pretokenize::fast::{
     FastCl100kPretokenizer, FastDeepSeekV3Pretokenizer, FastKimiPretokenizer,
     FastNemotronPretokenizer, FastNemotronRightAlignedPretokenizer, FastO200kPretokenizer,
-    FastOlmo3Pretokenizer, FastQwen2Pretokenizer, FastQwen35Pretokenizer, FastR50kPretokenizer,
+    FastCoderMiniPretokenizer, FastOlmo3Pretokenizer, FastQwen2Pretokenizer, FastQwen35Pretokenizer, FastR50kPretokenizer,
 };
 
 /// Which pretokenization scheme (regex) a tokenizer uses.
@@ -18,7 +18,12 @@ pub enum PretokenizerType {
     Nemotron,   // o200k without contractions, single-digit \p{N}; nvidia Nemotron-3
     NemotronRightAligned, // Nemotron with right-aligned \p{N} groups of three ("1|234|567")
     Kimi,       // o200k with [\p{Han}]+ runs and no `/` tail absorption; moonshotai Kimi-K2 line
+    CoderMini,  // Qwen3.5 with ZWNJ/ZWJ (U+200C/U+200D) as marks; the coder-mini 65k byte-level BPE
 }
+
+/// The coder-mini tokenizer.json Split regex (ZWNJ / ZWJ as literal chars).
+const CODER_MINI_SPLIT_REGEX: &str =
+    "(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\\r\\n\\p{L}\\p{M}\\p{N}\u{200c}\u{200d}]?[\\p{L}\\p{M}\u{200c}\u{200d}]+|\\p{N}| ?[^\\s\\p{L}\\p{M}\\p{N}\u{200c}\u{200d}]+[\\r\\n]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+";
 
 /// The three Split regexes of the DeepSeek V3/V4 pre_tokenizer Sequence, as
 /// they appear in tokenizer.json (the third contains literal CR/LF chars,
@@ -67,13 +72,16 @@ impl PretokenizerType {
             PretokenizerType::Kimi => {
                 FastPretokenizerDispatch::Kimi(FastKimiPretokenizer::new(bytes))
             }
+            PretokenizerType::CoderMini => {
+                FastPretokenizerDispatch::CoderMini(FastCoderMiniPretokenizer::new(bytes))
+            }
         }
     }
 
     /// The canonical name of each variant, in variant order — the
     /// identifiers `from_name` accepts (plus the aliases listed there).
     /// Error messages naming the valid schemes derive from this list.
-    pub const NAMES: [&'static str; 10] = [
+    pub const NAMES: [&'static str; 11] = [
         "gpt2",
         "gpt4",
         "qwen2",
@@ -84,6 +92,7 @@ impl PretokenizerType {
         "nemotron",
         "nemotron_right_aligned",
         "kimi",
+        "coder_mini",
     ];
 
     /// The scheme named by a lowercase identifier, as used by loaders whose
@@ -102,6 +111,7 @@ impl PretokenizerType {
             "nemotron" => PretokenizerType::Nemotron,
             "nemotron_right_aligned" => PretokenizerType::NemotronRightAligned,
             "kimi" => PretokenizerType::Kimi,
+            "coder_mini" => PretokenizerType::CoderMini,
             _ => return None,
         })
     }
@@ -120,6 +130,9 @@ impl PretokenizerType {
     /// Identify the scheme from the `Split` regex found in a HuggingFace
     /// `tokenizer.json` pre_tokenizer. Returns `None` for unknown patterns.
     pub fn from_split_regex(pattern: &str) -> Option<Self> {
+        if pattern == CODER_MINI_SPLIT_REGEX {
+            return Some(PretokenizerType::CoderMini);
+        }
         match pattern {
             r"'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+" => {
                 Some(PretokenizerType::GPT2)
@@ -164,6 +177,7 @@ pub enum FastPretokenizerDispatch<'a> {
     Nemotron(FastNemotronPretokenizer<'a>),
     NemotronRightAligned(FastNemotronRightAlignedPretokenizer<'a>),
     Kimi(FastKimiPretokenizer<'a>),
+    CoderMini(FastCoderMiniPretokenizer<'a>),
 }
 
 impl<'a> Iterator for FastPretokenizerDispatch<'a> {
@@ -182,6 +196,7 @@ impl<'a> Iterator for FastPretokenizerDispatch<'a> {
             FastPretokenizerDispatch::Nemotron(it) => it.next(),
             FastPretokenizerDispatch::NemotronRightAligned(it) => it.next(),
             FastPretokenizerDispatch::Kimi(it) => it.next(),
+            FastPretokenizerDispatch::CoderMini(it) => it.next(),
         }
     }
 }
@@ -211,6 +226,7 @@ unsafe impl<'a> crate::pretokenize::PretokenSpans<'a> for FastPretokenizerDispat
                 it.fill_spans_keyed(batch, prefetch)
             }
             FastPretokenizerDispatch::Kimi(it) => it.fill_spans_keyed(batch, prefetch),
+            FastPretokenizerDispatch::CoderMini(it) => it.fill_spans_keyed(batch, prefetch),
         }
     }
 }

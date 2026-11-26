@@ -30,7 +30,7 @@ mod unicode;
 
 pub use fast::{
     FastCl100kPretokenizer, FastDeepSeekV3Pretokenizer, FastOlmo3Pretokenizer,
-    FastQwen2Pretokenizer, FastQwen35Pretokenizer, FastR50kPretokenizer,
+    FastCoderMiniPretokenizer, FastQwen2Pretokenizer, FastQwen35Pretokenizer, FastR50kPretokenizer,
 };
 pub use options::{FastPretokenizerDispatch, PretokenizerType};
 pub use reference::state_machine::PretokenizerIter;
@@ -747,6 +747,7 @@ mod test {
         check_scheme!("cl100k", FastCl100kPretokenizer::new);
         check_scheme!("qwen2", FastQwen2Pretokenizer::new);
         check_scheme!("qwen3_5", FastQwen35Pretokenizer::new);
+        check_scheme!("coder_mini", FastCoderMiniPretokenizer::new);
         check_scheme!("olmo3", FastOlmo3Pretokenizer::new);
         check_scheme!("deepseek_v3", FastDeepSeekV3Pretokenizer::new);
     }
@@ -982,6 +983,11 @@ mod span_source_tests {
             FastQwen35Pretokenizer::new(b),
             "qwen3_5",
         );
+        check_source(
+            FastCoderMiniPretokenizer::new(b),
+            FastCoderMiniPretokenizer::new(b),
+            "coder_mini",
+        );
         check_source(FastOlmo3Pretokenizer::new(b), FastOlmo3Pretokenizer::new(b), "olmo3");
         check_source(
             FastDeepSeekV3Pretokenizer::new(b),
@@ -1032,6 +1038,7 @@ mod span_source_tests {
                 PretokenizerType::Olmo3,
                 PretokenizerType::DeepSeekV3,
                 PretokenizerType::Kimi,
+                PretokenizerType::CoderMini,
             ] {
                 check_source(pt.pretokenize(b), pt.pretokenize(b), "dispatch");
             }

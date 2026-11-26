@@ -18,6 +18,7 @@ pub mod o200k;
 pub mod olmo3;
 pub mod qwen2;
 pub mod qwen3_5;
+pub mod coder_mini;
 pub mod r50k;
 
 pub use cl100k::FastCl100kPretokenizer;
@@ -28,6 +29,7 @@ pub use o200k::FastO200kPretokenizer;
 pub use olmo3::FastOlmo3Pretokenizer;
 pub use qwen2::FastQwen2Pretokenizer;
 pub use qwen3_5::FastQwen35Pretokenizer;
+pub use coder_mini::FastCoderMiniPretokenizer;
 pub use r50k::FastR50kPretokenizer;
 
 use crate::pretokenize::SpanBatch;

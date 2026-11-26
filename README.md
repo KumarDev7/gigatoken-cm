@@ -1,3 +1,24 @@
+> **This fork (gigatoken-cm)** adds one pretokenizer scheme, `coder_mini`, for the coder-mini 65k byte-level BPE
+> tokenizer: the Qwen3.5 scheme with ZERO WIDTH NON-JOINER / ZERO WIDTH JOINER (U+200C / U+200D) classed as marks, so
+> Devanagari conjuncts stay one word. It is picked automatically when a tokenizer.json's Split regex is
+> `(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{M}\p{N}ZWNJ ZWJ]?[\p{L}\p{M}ZWNJ ZWJ]+|\p{N}| ?[^\s\p{L}\p{M}\p{N}ZWNJ ZWJ]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+`
+> (ZWNJ ZWJ = the literal characters). Everything else is upstream
+> [marcelroed/gigatoken](https://github.com/marcelroed/gigatoken) 0.11.0.
+>
+> **Verified:** 0 id mismatches vs HuggingFace `tokenizers` 0.23.3 on 34,058 real documents (37.1M tokens, 159.5 MB,
+> incl. 1,413 Devanagari-heavy documents and edge cases), plus the scheme's unit tests against the reference regex.
+> That run used x86_64 **without AVX-512** (scalar path); 16 threads gave 7.67M tok/s vs 3.45M for HuggingFace (2.2x).
+> Not yet verified on real data: the AVX-512 path (most Intel CPUs, e.g. Kaggle / Colab) and the aarch64 NEON path.
+> Check on your machine with `cm_port/parity.py <tokenizer.json> <docs.jsonl>` before trusting it there.
+>
+> **Install** (Linux x86_64 / aarch64, Python >= 3.10, no Rust needed): the wheels are attached to the
+> [latest release](https://github.com/KumarDev7/gigatoken-cm/releases/latest). One command that picks the right one:
+> ```bash
+> pip install "$(curl -s https://api.github.com/repos/KumarDev7/gigatoken-cm/releases/latest \
+>   | grep -o "https://[^\"]*$(uname -m)[^\"]*\.whl" | head -1)"
+> ```
+> Use: `import gigatoken as gt; tok = gt.Tokenizer("tokenizer.json"); ids = tok.encode_batch_list(texts)`.
+
 # Gigatoken
 
 <div align="center">

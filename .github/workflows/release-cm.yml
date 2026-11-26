@@ -1,0 +1,73 @@
+name: coder-mini release (wheels + parity)
+
+# Push a tag like v0.11.0-cm1: builds abi3 wheels (Linux x86_64 / aarch64, manylinux2014), checks the coder_mini
+# scheme against HuggingFace tokenizers on the built wheel, and attaches the wheels to a GitHub Release.
+on:
+  push:
+    tags: ["v*-cm*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: PyO3/maturin-action@3e2bdf6ba6453a61e649744019b8a2d906c7eb38 # v1.51.0
+        with:
+          maturin-version: v1.14.1
+          rust-toolchain: nightly
+          target: ${{ matrix.target }}
+          manylinux: "2014"
+          args: --release --locked --out dist --compatibility pypi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.target }}
+          path: dist/*.whl
+          if-no-files-found: error
+
+  parity:
+    name: Parity vs HuggingFace tokenizers (x86_64)
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v5
+        with:
+          name: wheel-x86_64-unknown-linux-gnu
+          path: dist
+      - name: CPU
+        run: grep -m1 "model name" /proc/cpuinfo; grep -q avx512f /proc/cpuinfo && echo "AVX-512 path" || echo "scalar path"
+      - name: Install
+        run: pip install dist/*.whl "tokenizers==0.23.3"
+      - name: Parity
+        run: python cm_port/ci_parity.py
+
+  release:
+    name: GitHub Release
+    needs: [build, parity]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: wheel-*
+          path: dist
+          merge-multiple: true
+      - name: Create release with wheels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/*.whl --repo "${GITHUB_REPOSITORY}" \
+            --title "${GITHUB_REF_NAME}" \
+            --notes "gigatoken with the coder_mini pretokenizer scheme. Install: pip install <wheel URL> (see README)."
