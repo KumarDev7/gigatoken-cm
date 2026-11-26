@@ -20,6 +20,12 @@
 >   | grep -o "https://[^\"]*$(uname -m)[^\"]*\.whl" | head -1)"
 > ```
 > Use: `import gigatoken as gt; tok = gt.Tokenizer("tokenizer.json"); ids = tok.encode_batch_list(texts)`.
+>
+> **The coder-mini tokenizer** is in [`coder_mini/tokenizer.json`](coder_mini/tokenizer.json) (byte-level BPE, 65,536 ids,
+> 64 special tokens, sha256 `c12195c238c757191e8cce02da4a754a298d33434eb206513a3592d2df8e727d`):
+> ```bash
+> curl -sLO https://raw.githubusercontent.com/KumarDev7/gigatoken-cm/main/coder_mini/tokenizer.json
+> ```
 
 # Gigatoken
 
