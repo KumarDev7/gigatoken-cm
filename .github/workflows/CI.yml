@@ -5,14 +5,8 @@
 #
 name: CI
 
+# gigatoken-cm: manual only (upstream's many-target cross builds; releases come from release-cm.yml)
 on:
-  push:
-    branches:
-      - main
-      - master
-    tags:
-      - '*'
-  pull_request:
   workflow_dispatch:
 
 permissions:
