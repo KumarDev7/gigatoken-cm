@@ -8,7 +8,9 @@
 > **Verified:** 0 id mismatches vs HuggingFace `tokenizers` 0.23.3 on 34,058 real documents (37.1M tokens, 159.5 MB,
 > incl. 1,413 Devanagari-heavy documents and edge cases), plus the scheme's unit tests against the reference regex.
 > That run used x86_64 **without AVX-512** (scalar path); 16 threads gave 7.67M tok/s vs 3.45M for HuggingFace (2.2x).
-> Not yet verified on real data: the AVX-512 path (most Intel CPUs, e.g. Kaggle / Colab) and the aarch64 NEON path.
+> The AVX-512 path was checked in CI (AMD EPYC 9V45, AVX-512): 0 mismatches on 5,010 synthetic mixed documents
+> (2.1M tokens; code, English, Devanagari with ZWJ/ZWNJ, marks, other scripts). Not yet run on real data on AVX-512,
+> and the aarch64 NEON path is built but untested.
 > Check on your machine with `cm_port/parity.py <tokenizer.json> <docs.jsonl>` before trusting it there.
 >
 > **Install** (Linux x86_64 / aarch64, Python >= 3.10, no Rust needed): the wheels are attached to the
